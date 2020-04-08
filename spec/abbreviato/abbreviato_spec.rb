@@ -374,6 +374,13 @@ describe "Abbreviato" do
         with: { max_length: 120, truncate_incomplete_row: true },
         source: "<table><tr><td>aaaaaaaaaaaaaaaaaaaaaa</td><td>bbbbbbbbbbbbbbbbbbbbbb</td></tr><tr><td>cccccccccccccccccccccc</td><td>dddddddddddddddddddddd</td></tr></table>",
         expected: "<table><tr>\n<td>aaaaaaaaaaaaaaaaaaaaaa</td>\n<td>bbbbbbbbbbbbbbbbbbbbbb</td>\n</tr></table>"
+
+      describe "and table is not the last element in the document" do
+        it_truncates "does not attempt table truncation",
+          with: { max_length: 120, truncate_incomplete_row: true },
+          source: "<table><tr><td>a</td><td>b</td><td>c</td></tr><tr><td>d</td></tr></table><div>Lorem ipsum dolor sit amet, consectetur adipiscing elit Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor inci ex ea commodo consequat</div>",
+          expected: "<table><tr><td>a</td><td>b</td><td>c</td></tr><tr><td>d</td></tr></table><div>Lorem ipsum dolor sit amet, &hellip;</div>"
+      end
     end
 
     describe "when truncate_incomplete_row option is absent" do

@@ -27,7 +27,7 @@ module Abbreviato
     parser = Nokogiri::HTML::SAX::Parser.new(truncated_sax_document)
     parser.parse(source) { |context| context.replace_entities = false }
 
-    if truncated_sax_document.truncated && user_options[:truncate_incomplete_row]
+    if truncated_sax_document.truncated && truncated_sax_document.truncated_at_table && user_options[:truncate_incomplete_row]
       parsed_results = [truncated_sax_document.truncated_string.strip, truncated_sax_document.truncated]
 
       html_fragment = Nokogiri::HTML.fragment(truncated_sax_document.truncated_string.strip)

@@ -7,12 +7,14 @@ class TruncatedSaxDocument < Nokogiri::XML::SAX::Document
   # These don't have to be closed (which also impacts ongoing length calculations)
   # http://www.456bereastreet.com/archive/201005/void_empty_elements_and_self-closing_start_tags_in_html/
   VOID_TAGS = %w[area base br col command hr img input keygen link meta param source wbr].freeze
+  TABLE_TAGS = %w[table tr td thead tbody tfoot].freeze
 
   attr_reader :truncated_string,
     :max_length,
     :tail,
     :ignored_levels,
-    :truncated
+    :truncated,
+    :truncated_at_table
 
   def initialize(options)
     @html_coder = HTMLEntities.new
@@ -124,6 +126,7 @@ class TruncatedSaxDocument < Nokogiri::XML::SAX::Document
   end
 
   def end_document
+    @truncated_at_table = !(TABLE_TAGS & @closing_tags).empty?
     @closing_tags.reverse_each { |name| append_to_truncated_string(closing_tag(name), 0) }
   end
 
