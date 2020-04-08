@@ -1,3 +1,5 @@
+require 'byebug';
+
 module Abbreviato
   DEFAULT_OPTIONS = {
       max_length: 30,
@@ -27,28 +29,54 @@ module Abbreviato
     parser = Nokogiri::HTML::SAX::Parser.new(truncated_sax_document)
     parser.parse(source) { |context| context.replace_entities = false }
 
-    if truncated_sax_document.truncated && truncated_sax_document.truncated_at_table && user_options[:truncate_incomplete_row]
-      parsed_results = [truncated_sax_document.truncated_string.strip, truncated_sax_document.truncated]
+    puts "================================================================================================"
+    puts "truncated_sax_document.truncated: #{truncated_sax_document.truncated}"
+    puts "truncated_sax_document.truncated_at_table: #{truncated_sax_document.truncated_at_table}"
+    puts "user_options[:truncate_incomplete_row]: #{user_options[:truncate_incomplete_row]}"
+    puts "================================================================================================"
 
-      html_fragment = Nokogiri::HTML.fragment(truncated_sax_document.truncated_string.strip)
-      return parsed_results if html_fragment.nil?
-
-      last_table_in_doc = html_fragment.xpath('.//table').last
-      return parsed_results unless last_table_in_doc
-
-      first_row = last_table_in_doc.xpath('.//tr').first
-      return parsed_results unless first_row
-
-      cols_in_first_row = first_row.xpath('.//td').length
-      return parsed_results unless cols_in_first_row > 0
-
-      last_table_in_doc.xpath('.//tr').each do |row|
-        row.remove if row.xpath('.//td').length != cols_in_first_row
-      end
-
-      return [html_fragment.to_html, truncated_sax_document.truncated]
-    end
+    return truncate_incomplete_row(truncated_sax_document) if user_options[:truncate_incomplete_row]
 
     [truncated_sax_document.truncated_string.strip, truncated_sax_document.truncated]
   end
+
+  def self.truncate_incomplete_row(truncated_sax_document)
+    parsed_results = [truncated_sax_document.truncated_string.strip, truncated_sax_document.truncated]
+
+    return parsed_results unless truncated_sax_document.truncated && truncated_sax_document.truncated_at_table
+
+    parsed_results = [truncated_sax_document.truncated_string.strip, truncated_sax_document.truncated]
+
+    html_fragment = Nokogiri::HTML.fragment(truncated_sax_document.truncated_string.strip)
+    return parsed_results if html_fragment.nil?
+
+    # Get the last table in the document that is not nested in another table
+    last_table_in_doc = html_fragment.xpath('.//table[not(ancestor::table)]').last
+
+    return parsed_results unless last_table_in_doc
+
+    table_rows = last_table_in_doc.xpath('.//tr')
+
+    return parsed_results unless table_rows.length
+
+    # It's possible for column cells to have tables in them, so there's no good
+    # way to figure out this value...
+    columns_per_row = table_rows.map { |row| row.xpath('.//td').length }
+
+    # It is not uncommon for tables to have headers that contain fewer columns
+    # than the rest of the table. To account for this, the estimated columns per
+    # row is the number of columns that appears most frequently for each row
+    # in the table.
+    estimated_columns_per_row = columns_per_row.max_by {|i| columns_per_row.count(i)}
+
+    table_rows.reverse.each do |row|
+      break if row.xpath('.//td').length == estimated_columns_per_row
+
+      row.remove
+    end
+
+    [html_fragment.to_html, truncated_sax_document.truncated]
+  end
+
+  private_class_method :truncate_incomplete_row
 end

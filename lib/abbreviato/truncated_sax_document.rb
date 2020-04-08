@@ -48,6 +48,7 @@ class TruncatedSaxDocument < Nokogiri::XML::SAX::Document
     # Abort if there is not enough space to add the combined opening tag and (potentially) the closing tag
     length_of_tags = overridden_tag_length(name, string_to_add)
     if length_of_tags > remaining_length
+      @truncated_at_table = TABLE_TAGS.include?(name) if @truncated_at_table.nil?
       @truncated = true
       enter_ignored_level(name)
       return
@@ -126,7 +127,7 @@ class TruncatedSaxDocument < Nokogiri::XML::SAX::Document
   end
 
   def end_document
-    @truncated_at_table = !(TABLE_TAGS & @closing_tags).empty?
+    @truncated_at_table = !(TABLE_TAGS & @closing_tags).empty? if @truncated_at_table.nil?
     @closing_tags.reverse_each { |name| append_to_truncated_string(closing_tag(name), 0) }
   end
 
