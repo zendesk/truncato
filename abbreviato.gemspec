@@ -26,7 +26,7 @@ Gem::Specification.new do |s|
   s.required_ruby_version = '>= 2.6.6'
 
   s.add_dependency 'htmlentities', '~> 4.3.4'
-  s.add_dependency 'nokogiri', '1.10.10'
+  s.add_dependency 'nokogiri', '1.11.7'
 
   s.add_development_dependency 'awesome_print'
   s.add_development_dependency 'benchmark-memory'
